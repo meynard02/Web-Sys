@@ -84,6 +84,7 @@ $conn->close();
         input[type="password"] {
             width: 100%;
             padding: 10px 40px 10px 10px; /* space for the icon */
+            padding: 10px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -115,7 +116,7 @@ $conn->close();
             text-align: center;
             margin-top: 20px;
         }
-        /* Password container with eye emoji */
+         /* Password container with eye emoji */
         .password-container {
             position: relative;
             width: 100%;
@@ -156,7 +157,6 @@ $conn->close();
             Don't have an account? <a href="create.php">Register here</a>
         </div>
     </div>
-
     <script>
         const togglePassword = document.getElementById("togglePassword");
         const passwordInput = document.getElementById("password");

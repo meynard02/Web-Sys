@@ -2,11 +2,13 @@
 session_start();
 include 'db.php';
 
+// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
+// Session timeout handling (5 minutes = 300 seconds)
 $inactive = 300;
 
 if (isset($_SESSION['last_activity'])) {
@@ -18,7 +20,8 @@ if (isset($_SESSION['last_activity'])) {
         exit();
     }
 }
-$_SESSION['last_activity'] = time(); 
+$_SESSION['last_activity'] = time();
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -85,6 +88,7 @@ $_SESSION['last_activity'] = time();
             border-radius: 5px;
             display: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
         }
     </style>
 </head>
