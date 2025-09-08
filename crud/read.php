@@ -1,16 +1,24 @@
-<?php 
-// read.php
+<?php
 session_start();
+include 'db.php';
 
-// Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-include 'db.php'; 
-?>
+$inactive = 300;
 
+if (isset($_SESSION['last_activity'])) {
+    $session_life = time() - $_SESSION['last_activity'];
+    if ($session_life > $inactive) {
+        session_unset();
+        session_destroy();
+        header("Location: login.php?timeout=1");
+        exit();
+    }
+}
+$_SESSION['last_activity'] = time(); 
 <!DOCTYPE html>
 <html>
 <head>
@@ -67,19 +75,34 @@ include 'db.php';
         .actions {
             white-space: nowrap;
         }
+        #logout-warning {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ffcccc;
+            padding: 10px 15px;
+            border: 1px solid #ff0000;
+            border-radius: 5px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
+    <div id="logout-warning">
+        You will be logged out due to inactivity in <span id="countdown">5</span> seconds.
+    </div>
+
     <div class="header-container">
         <h2>User List</h2>
         <div class="user-info">
-            Welcome, <?php echo $_SESSION['gname'] . ' ' . $_SESSION['lname']; ?>! 
+            Welcome, <?php echo $_SESSION['gname'] . ' ' . $_SESSION['lname']; ?>!
             <a href="logout.php" class="logout">Logout</a>
         </div>
     </div>
-    
+
     <a href="create.php">Add New User</a><br><br>
-    
+
     <table>
         <tr>
             <th>User ID</th>
@@ -106,5 +129,49 @@ include 'db.php';
         }
         ?>
     </table>
+
+    <script>
+        let logoutTimer;
+        let countdownTimer;
+        const inactivityTime = 5000; // 5 seconds inactivity before warning
+        const countdownTime = 5;     // 5 seconds countdown before logout
+
+        function startTimer() {
+            clearTimeout(logoutTimer);
+            clearInterval(countdownTimer);
+            document.getElementById('logout-warning').style.display = 'none';
+            logoutTimer = setTimeout(showLogoutWarning, inactivityTime);
+        }
+
+        function showLogoutWarning() {
+            let seconds = countdownTime;
+            const warningElement = document.getElementById('logout-warning');
+            const countdownElement = document.getElementById('countdown');
+
+            warningElement.style.display = 'block';
+            countdownElement.textContent = seconds;
+
+            countdownTimer = setInterval(function() {
+                seconds--;
+                countdownElement.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(countdownTimer);
+                    window.location.href = 'logout.php';
+                }
+            }, 1000);
+        }
+
+        function resetTimer() {
+            startTimer();
+        }
+
+        document.addEventListener('mousemove', resetTimer);
+        document.addEventListener('keypress', resetTimer);
+        document.addEventListener('click', resetTimer);
+        document.addEventListener('scroll', resetTimer);
+        document.addEventListener('touchstart', resetTimer);
+
+        window.onload = startTimer;
+    </script>
 </body>
 </html>
