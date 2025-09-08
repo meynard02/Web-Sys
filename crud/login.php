@@ -83,7 +83,7 @@ $conn->close();
         input[type="text"],
         input[type="password"] {
             width: 100%;
-            padding: 10px;
+            padding: 10px 40px 10px 10px; /* space for the icon */
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -115,6 +115,20 @@ $conn->close();
             text-align: center;
             margin-top: 20px;
         }
+        /* Password container with eye emoji */
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -130,7 +144,10 @@ $conn->close();
             <input type="text" name="username" required>
 
             <label>Password:</label>
-            <input type="password" name="password" required>
+            <div class="password-container">
+                <input type="password" name="password" id="password" required>
+                <span class="toggle-password" id="togglePassword">👁️</span>
+            </div>
 
             <input type="submit" value="Login">
         </form>
@@ -139,5 +156,18 @@ $conn->close();
             Don't have an account? <a href="create.php">Register here</a>
         </div>
     </div>
+
+    <script>
+        const togglePassword = document.getElementById("togglePassword");
+        const passwordInput = document.getElementById("password");
+
+        togglePassword.addEventListener("click", function () {
+            const type = passwordInput.type === "password" ? "text" : "password";
+            passwordInput.type = type;
+            
+            // Switch between 👁️ and 🙈
+            this.textContent = type === "password" ? "👁️" : "🙈";
+        });
+    </script>
 </body>
 </html>
