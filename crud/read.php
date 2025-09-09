@@ -107,7 +107,7 @@ $_SESSION['last_activity'] = time();
 
     <a href="create.php">Add New User</a><br><br>
 
-    <table>
+    <table id="userTable">
         <tr>
             <th>User ID</th>
             <th>Full Name</th>
@@ -119,7 +119,7 @@ $_SESSION['last_activity'] = time();
         <?php
         $result = $conn->query("SELECT * FROM user");
         while ($row = $result->fetch_assoc()) {
-            echo "<tr>
+            echo "<tr id='row-{$row['userID']}'>
                     <td>{$row['userID']}</td>
                     <td>{$row['Lname']}, {$row['Gname']} {$row['MI']}.</td>
                     <td>{$row['Username']}</td>
@@ -127,7 +127,8 @@ $_SESSION['last_activity'] = time();
                     <td>{$row['Created_at']}</td>
                     <td class='actions'>
                         <a href='update.php?id={$row['userID']}'>Edit</a>
-                        <a href='delete.php?id={$row['userID']}' onclick=\"return confirm('Are you sure you want to delete this user?');\">Delete</a>
+                        <!-- new update: delete function -->
+                        <a href='#' onclick=\"return localDelete('{$row['userID']}');\">Delete</a>
                     </td>
                   </tr>";
         }
@@ -135,6 +136,39 @@ $_SESSION['last_activity'] = time();
     </table>
 
     <script>
+        // new update: delete function with localStorage persistence
+        function localDelete(id) {
+            if (confirm("Are you sure you want to delete this user?")) {
+                const row = document.getElementById("row-" + id);
+                if (row) {
+                    row.remove(); // tanggalin sa DOM
+
+                    // save deleted ID sa localStorage
+                    let deleted = JSON.parse(localStorage.getItem("deletedUsers")) || [];
+                    if (!deleted.includes(id)) {
+                        deleted.push(id);
+                        localStorage.setItem("deletedUsers", JSON.stringify(deleted));
+                    }
+                }
+            }
+            return false; // para hindi mag-redirect
+        }
+
+        // new update: apply deletion kapag nag-refresh
+        window.onload = function() {
+            // session timeout system start
+            startTimer();
+
+            // alisin lahat ng na-delete dati
+            let deleted = JSON.parse(localStorage.getItem("deletedUsers")) || [];
+            deleted.forEach(function(id) {
+                const row = document.getElementById("row-" + id);
+                if (row) {
+                    row.remove();
+                }
+            });
+        };
+
         let logoutTimer;
         let countdownTimer;
         const inactivityTime = 5000; // 5 seconds inactivity before warning
@@ -174,8 +208,6 @@ $_SESSION['last_activity'] = time();
         document.addEventListener('click', resetTimer);
         document.addEventListener('scroll', resetTimer);
         document.addEventListener('touchstart', resetTimer);
-
-        window.onload = startTimer;
     </script>
 </body>
 </html>
