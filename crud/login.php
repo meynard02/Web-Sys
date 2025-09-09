@@ -123,8 +123,8 @@ $conn->close();
         }
         .toggle-password {
             position: absolute;
-            right: 12px;
-            top: 50%;
+            right: 10px;
+            top: 30%;
             transform: translateY(-50%);
             cursor: pointer;
             font-size: 18px;
@@ -147,7 +147,7 @@ $conn->close();
             <label>Password:</label>
             <div class="password-container">
                 <input type="password" name="password" id="password" required>
-                <span class="toggle-password" id="togglePassword">👁️</span>
+                <span class="toggle-password" id="togglePassword">🔒</span>
             </div>
 
             <input type="submit" value="Login">
@@ -157,17 +157,20 @@ $conn->close();
             Don't have an account? <a href="create.php">Register here</a>
         </div>
     </div>
-    <script>
-        const togglePassword = document.getElementById("togglePassword");
-        const passwordInput = document.getElementById("password");
 
-        togglePassword.addEventListener("click", function () {
-            const type = passwordInput.type === "password" ? "text" : "password";
-            passwordInput.type = type;
-            
-            // Switch between 👁️ and 🙈
-            this.textContent = type === "password" ? "👁️" : "🙈";
-        });
-    </script>
+ <script>
+
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+
+    togglePassword.addEventListener("click", function () {
+        const type = passwordInput.type === "password" ? "text" : "password";
+        passwordInput.type = type;
+        
+        // Switch between lock 🔒 and unlock 🔓
+        this.textContent = type === "password" ? "🔒" : "🔓";
+    });
+
+</script>
 </body>
 </html>
