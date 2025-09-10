@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// Show success message if redirected from create.php
+// Show success message if redirected from create.php or delete_user.php
 if (isset($_SESSION['success'])) {
     $success_message = $_SESSION['success'];
     unset($_SESSION['success']);
@@ -16,7 +16,6 @@ if (isset($_SESSION['success'])) {
 
 // Session timeout handling (5 minutes = 300 seconds)
 $inactive = 300;
-
 if (isset($_SESSION['last_activity'])) {
     $session_life = time() - $_SESSION['last_activity'];
     if ($session_life > $inactive) {
@@ -28,8 +27,8 @@ if (isset($_SESSION['last_activity'])) {
 }
 $_SESSION['last_activity'] = time();
 
-// Fetch users from database
-$result = $conn->query("SELECT * FROM user");
+// Fetch only non-deleted users from database
+$result = $conn->query("SELECT * FROM user WHERE is_deleted = FALSE");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,26 +51,26 @@ $result = $conn->query("SELECT * FROM user");
             --box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             --transition: all 0.3s ease;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Poppins', 'Segoe UI', sans-serif;
         }
-        
+
         body {
             background-color: #f5f7fb;
             color: var(--dark);
             padding: 20px;
             min-height: 100vh;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .header-container {
             display: flex;
             justify-content: space-between;
@@ -82,23 +81,23 @@ $result = $conn->query("SELECT * FROM user");
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
         }
-        
+
         h2 {
             color: var(--primary);
             font-weight: 600;
         }
-        
+
         .user-info {
             display: flex;
             align-items: center;
             gap: 15px;
             color: var(--gray);
         }
-        
+
         .user-info .welcome {
             font-style: italic;
         }
-        
+
         .btn {
             padding: 10px 20px;
             border-radius: 8px;
@@ -109,43 +108,43 @@ $result = $conn->query("SELECT * FROM user");
             gap: 8px;
             transition: var(--transition);
         }
-        
+
         .btn-primary {
             background: var(--primary);
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: var(--secondary);
             transform: translateY(-2px);
         }
-        
+
         .btn-danger {
             background: var(--danger);
             color: white;
         }
-        
+
         .btn-danger:hover {
             background: #c1121f;
             transform: translateY(-2px);
         }
-        
+
         .btn-action {
             padding: 6px 12px;
             border-radius: 6px;
             font-size: 14px;
         }
-        
+
         .btn-edit {
             background: var(--success);
             color: white;
         }
-        
+
         .btn-delete {
             background: var(--danger);
             color: white;
         }
-        
+
         .table-container {
             background: white;
             border-radius: var(--border-radius);
@@ -153,18 +152,18 @@ $result = $conn->query("SELECT * FROM user");
             overflow: hidden;
             overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         th, td {
             padding: 16px 20px;
             text-align: left;
             border-bottom: 1px solid #e9ecef;
         }
-        
+
         th {
             background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
@@ -172,21 +171,21 @@ $result = $conn->query("SELECT * FROM user");
             position: sticky;
             top: 0;
         }
-        
+
         tr:nth-child(even) {
             background-color: #f8f9fa;
         }
-        
+
         tr:hover {
             background-color: #e9ecef;
         }
-        
+
         .actions {
             white-space: nowrap;
             display: flex;
             gap: 8px;
         }
-        
+
         #logout-warning {
             position: fixed;
             top: 20px;
@@ -201,32 +200,32 @@ $result = $conn->query("SELECT * FROM user");
             animation: slideInRight 0.3s ease;
             max-width: 350px;
         }
-        
+
         @keyframes slideInRight {
             from { opacity: 0; transform: translateX(100px); }
             to { opacity: 1; transform: translateX(0); }
         }
-        
+
         .warning-content {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .warning-icon {
             color: var(--warning);
             font-size: 24px;
         }
-        
+
         .warning-text {
             flex: 1;
         }
-        
+
         .countdown {
             font-weight: 600;
             color: var(--danger);
         }
-        
+
         .success-message {
             background-color: #d4edda;
             color: #155724;
@@ -236,29 +235,29 @@ $result = $conn->query("SELECT * FROM user");
             border: 1px solid #c3e6cb;
             animation: slideIn 0.3s ease;
         }
-        
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         @media (max-width: 768px) {
             .header-container {
                 flex-direction: column;
                 gap: 15px;
                 align-items: flex-start;
             }
-            
+
             .user-info {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 8px;
             }
-            
+
             th, td {
                 padding: 12px 15px;
             }
-            
+
             .actions {
                 flex-direction: column;
                 gap: 5px;
@@ -277,7 +276,6 @@ $result = $conn->query("SELECT * FROM user");
             </div>
         </div>
     </div>
-
     <div class="container">
         <div class="header-container">
             <h2>User Management System</h2>
@@ -290,19 +288,16 @@ $result = $conn->query("SELECT * FROM user");
                 </a>
             </div>
         </div>
-
         <?php if (isset($success_message)): ?>
             <div class="success-message">
                 <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
             </div>
         <?php endif; ?>
-
         <a href="create.php" class="btn btn-primary">
             <i class="fas fa-user-plus"></i> Add New User
         </a>
-        
-        <br><br>
 
+        <br><br>
         <div class="table-container">
             <table id="userTable">
                 <thead>
@@ -328,7 +323,7 @@ $result = $conn->query("SELECT * FROM user");
                                     <a href='update.php?id={$row['userID']}' class='btn btn-action btn-edit'>
                                         <i class='fas fa-edit'></i> Edit
                                     </a>
-                                    <a href='#' onclick=\"return localDelete('{$row['userID']}');\" class='btn btn-action btn-delete'>
+                                    <a href='#' onclick=\"return deleteUser('{$row['userID']}');\" class='btn btn-action btn-delete'>
                                         <i class='fas fa-trash'></i> Delete
                                     </a>
                                 </td>
@@ -339,44 +334,39 @@ $result = $conn->query("SELECT * FROM user");
             </table>
         </div>
     </div>
-
     <script>
-        // Delete function with localStorage persistence
-        function localDelete(id) {
+        // Delete function to call backend
+        function deleteUser(id) {
             if (confirm("Are you sure you want to delete this user?")) {
-                const row = document.getElementById("row-" + id);
-                if (row) {
-                    row.style.opacity = "0.5";
-                    row.style.transition = "opacity 0.3s ease";
-                    
-                    setTimeout(() => {
-                        row.remove(); // Remove from DOM
-                    }, 300);
-
-                    // Save deleted ID to localStorage
-                    let deleted = JSON.parse(localStorage.getItem("deletedUsers")) || [];
-                    if (!deleted.includes(id)) {
-                        deleted.push(id);
-                        localStorage.setItem("deletedUsers", JSON.stringify(deleted));
+                fetch('delete_user.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `user_id=${id}`
+                })
+                .then(response => response.text())
+                .then(data => {
+                    // Remove the row from the table
+                    const row = document.getElementById("row-" + id);
+                    if (row) {
+                        row.style.opacity = "0.5";
+                        row.style.transition = "opacity 0.3s ease";
+                        setTimeout(() => {
+                            row.remove();
+                        }, 300);
                     }
-                }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
             }
-            return false; // Prevent redirect
+            return false;
         }
 
-        // Apply deletion on page load
+        // Session timeout system
         window.onload = function() {
-            // Session timeout system start
             startTimer();
-
-            // Remove all previously deleted users
-            let deleted = JSON.parse(localStorage.getItem("deletedUsers")) || [];
-            deleted.forEach(function(id) {
-                const row = document.getElementById("row-" + id);
-                if (row) {
-                    row.remove();
-                }
-            });
         };
 
         let logoutTimer;
@@ -395,10 +385,8 @@ $result = $conn->query("SELECT * FROM user");
             let seconds = countdownTime;
             const warningElement = document.getElementById('logout-warning');
             const countdownElement = document.getElementById('countdown');
-
             warningElement.style.display = 'block';
             countdownElement.textContent = seconds;
-
             countdownTimer = setInterval(function() {
                 seconds--;
                 countdownElement.textContent = seconds;
