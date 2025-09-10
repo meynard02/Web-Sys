@@ -14,7 +14,7 @@ $error_message = "";
 // Process form when submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data safely
-    $username = $_POST['username'] ?? '';
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
     if ($username !== '' && $password !== '') {
@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username'] = $row['Username'];
                 $_SESSION['gname'] = $row['Gname'];
                 $_SESSION['lname'] = $row['Lname'];
+                $_SESSION['last_activity'] = time();
                 
                 // Redirect to read.php
                 header("Location: read.php");
@@ -52,125 +53,264 @@ $conn->close();
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #fca311;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
         }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
         .login-container {
             background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            width: 100%;
+            max-width: 450px;
+            overflow: hidden;
+            animation: fadeIn 0.5s ease;
         }
-        h2 {
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .login-header {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 25px;
             text-align: center;
-            color: #333;
-            margin-bottom: 25px;
+            position: relative;
         }
+        
+        .login-header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--success), var(--warning));
+        }
+        
+        .login-header h2 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .login-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .login-body {
+            padding: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+            font-size: 14px;
         }
-        input[type="text"],
-        input[type="password"] {
+        
+        input {
             width: 100%;
-            padding: 10px 40px 10px 10px; /* space for the icon */
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 14px 15px 14px 45px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: var(--transition);
+            background-color: #f8f9fa;
         }
-        input[type="submit"] {
-            width: 100%;
-            padding: 12px;
-            background-color: #4CAF50;
+        
+        input:focus {
+            border-color: var(--primary);
+            outline: none;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+        
+        .form-group i {
+            position: absolute;
+            left: 15px;
+            top: 43px;
+            color: var(--gray);
+            font-size: 18px;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 12px;
+            top: 14px;
+            cursor: pointer;
+            color: var(--gray);
+            background: transparent;
+            border: none;
+            font-size: 18px;
+        }
+        
+        .btn {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border-radius: 8px;
+            padding: 16px 20px;
             font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: var(--transition);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
         }
-        input[type="submit"]:hover {
-            background-color: #45a049;
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
         .error {
-            color: #d9534f;
-            text-align: center;
-            margin-bottom: 15px;
-            padding: 10px;
             background-color: #f8d7da;
+            color: #721c24;
+            padding: 12px 16px;
+            margin: 15px 0;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
             border: 1px solid #f5c6cb;
-            border-radius: 4px;
+            animation: slideIn 0.3s ease;
         }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         .register-link {
             text-align: center;
             margin-top: 20px;
+            font-size: 14px;
+            color: var(--gray);
         }
-         /* Password container with eye emoji */
-        .password-container {
-            position: relative;
-            width: 100%;
+        
+        .register-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: var(--transition);
         }
-        .toggle-password {
-            position: absolute;
-            right: 10px;
-            top: 30%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            font-size: 18px;
-            user-select: none;
+        
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 576px) {
+            .login-container {
+                max-width: 100%;
+            }
+            
+            .login-body {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <h2>Login</h2>
+        <div class="login-header">
+            <h2>Welcome Back</h2>
+            <p>Sign in to your account</p>
+        </div>
         
-        <?php if (!empty($error_message)): ?>
-            <div class="error"><?php echo $error_message; ?></div>
-        <?php endif; ?>
-        
-        <form method="POST">
-            <label>Username:</label>
-            <input type="text" name="username" required>
+        <div class="login-body">
+            <?php if (!empty($error_message)): ?>
+                <div class="error"><?php echo $error_message; ?></div>
+            <?php endif; ?>
+            
+            <form method="POST">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <i class="fas fa-user"></i>
+                    <input type="text" name="username" required placeholder="Enter your username">
+                </div>
 
-            <label>Password:</label>
-            <div class="password-container">
-                <input type="password" name="password" id="password" required>
-                <span class="toggle-password" id="togglePassword">🔒</span>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <i class="fas fa-lock"></i>
+                    <input type="password" name="password" id="password" required placeholder="Enter your password">
+                    <button type="button" class="toggle-password" id="togglePassword">
+                        <i class="far fa-eye"></i>
+                    </button>
+                </div>
+
+                <button type="submit" class="btn">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+            
+            <div class="register-link">
+                Don't have an account? <a href="create.php">Register here</a>
             </div>
-
-            <input type="submit" value="Login">
-        </form>
-        
-        <div class="register-link">
-            Don't have an account? <a href="create.php">Register here</a>
         </div>
     </div>
 
- <script>
+    <script>
+        const togglePassword = document.getElementById("togglePassword");
+        const passwordInput = document.getElementById("password");
 
-    const togglePassword = document.getElementById("togglePassword");
-    const passwordInput = document.getElementById("password");
-
-    togglePassword.addEventListener("click", function () {
-        const type = passwordInput.type === "password" ? "text" : "password";
-        passwordInput.type = type;
-        
-        // Switch between lock 🔒 and unlock 🔓
-        this.textContent = type === "password" ? "🔒" : "🔓";
-    });
-
-</script>
+        togglePassword.addEventListener("click", function () {
+            const type = passwordInput.type === "password" ? "text" : "password";
+            passwordInput.type = type;
+            this.innerHTML = type === "password" ? '<i class="far fa-eye"></i>' : '<i class="far fa-eye-slash"></i>';
+        });
+    </script>
 </body>
 </html>

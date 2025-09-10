@@ -1,50 +1,89 @@
-<?php 
+<?php
 session_start();
 include 'db.php';
 
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Check if ID parameter is provided
+if (!isset($_GET['id'])) {
+    header("Location: read.php");
+    exit();
+}
+
+$user_id = $_GET['id'];
+$error = '';
+$success = '';
+
+// Fetch user data
+$stmt = $conn->prepare("SELECT * FROM user WHERE userID = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows === 0) {
+    // User not found
+    header("Location: read.php");
+    exit();
+}
+
+$user = $result->fetch_assoc();
+$stmt->close();
+
 // Process form submission
-if (isset($_POST['submit'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lname = htmlspecialchars(trim($_POST['lname']));
     $gname = htmlspecialchars(trim($_POST['gname']));
     $mi = htmlspecialchars(trim($_POST['mi']));
     $uname = htmlspecialchars(trim($_POST['uname']));
-    $pwd = $_POST['password'];
-    $hash = password_hash($pwd, PASSWORD_DEFAULT);
-
-    // Check if username already exists
-    $check_sql = "SELECT * FROM user WHERE Username = ?";
-    $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param("s", $uname);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
     
-    if ($check_result->num_rows > 0) {
-        $error = "Username already taken!";
-    } else {
-        $sql = "INSERT INTO user (userID, Lname, Gname, MI, Username, Password, Created_at) 
-                VALUES (NULL, ?, ?, ?, ?, ?, NOW())";
+    // Check if username is being changed and if it's already taken (excluding current user)
+    if ($uname !== $user['Username']) {
+        $check_sql = "SELECT * FROM user WHERE Username = ? AND userID != ?";
+        $check_stmt = $conn->prepare($check_sql);
+        $check_stmt->bind_param("si", $uname, $user_id);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
         
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("sssss", $lname, $gname, $mi, $uname, $hash);
-
-        if ($stmt->execute()) {
-            // Redirect to read.php after successful registration if logged in
-            if (isset($_SESSION['user_id'])) {
-                $_SESSION['success'] = "User added successfully!";
-                header("Location: read.php");
-                exit();
-            } else {
-                // If not logged in, redirect to login page
-                $_SESSION['success'] = "Account created successfully! Please login.";
-                header("Location: login.php");
-                exit();
-            }
+        if ($check_result->num_rows > 0) {
+            $error = "Username already taken!";
         } else {
-            $error = "Error: " . $conn->error;
+            $update_sql = "UPDATE user SET Lname = ?, Gname = ?, MI = ?, Username = ? WHERE userID = ?";
+            $update_stmt = $conn->prepare($update_sql);
+            $update_stmt->bind_param("ssssi", $lname, $gname, $mi, $uname, $user_id);
+            
+            if ($update_stmt->execute()) {
+                $success = "User updated successfully!";
+            } else {
+                $error = "Error updating user: " . $conn->error;
+            }
+            $update_stmt->close();
         }
-        $stmt->close();
+        $check_stmt->close();
+    } else {
+        // Username not changed, update other fields
+        $update_sql = "UPDATE user SET Lname = ?, Gname = ?, MI = ? WHERE userID = ?";
+        $update_stmt = $conn->prepare($update_sql);
+        $update_stmt->bind_param("sssi", $lname, $gname, $mi, $user_id);
+        
+        if ($update_stmt->execute()) {
+            $success = "User updated successfully!";
+        } else {
+            $error = "Error updating user: " . $conn->error;
+        }
+        $update_stmt->close();
     }
-    $check_stmt->close();
+    
+    // Refresh user data
+    $stmt = $conn->prepare("SELECT * FROM user WHERE userID = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
+    $stmt->close();
 }
 ?>
 
@@ -53,7 +92,7 @@ if (isset($_POST['submit'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create User</title>
+    <title>Edit User</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -165,32 +204,6 @@ if (isset($_POST['submit'])) {
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
         }
         
-        .availability-status {
-            margin-top: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            height: 20px;
-        }
-        
-        .available {
-            color: #28a745;
-        }
-        
-        .taken {
-            color: var(--danger);
-        }
-        
-        .checking {
-            color: var(--warning);
-        }
-        
-        .status-icon {
-            margin-right: 6px;
-            font-size: 14px;
-        }
-        
         .btn {
             background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
@@ -243,37 +256,22 @@ if (isset($_POST['submit'])) {
             border: 1px solid #f5c6cb;
         }
         
-        .login-link {
+        .back-link {
             text-align: center;
             margin-top: 20px;
             font-size: 14px;
             color: var(--gray);
         }
         
-        .login-link a {
+        .back-link a {
             color: var(--primary);
             text-decoration: none;
             font-weight: 600;
             transition: var(--transition);
         }
         
-        .login-link a:hover {
+        .back-link a:hover {
             text-decoration: underline;
-        }
-        
-        .password-container {
-            position: relative;
-        }
-        
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 14px;
-            cursor: pointer;
-            color: var(--gray);
-            background: transparent;
-            border: none;
-            font-size: 18px;
         }
         
         .form-group i {
@@ -302,119 +300,53 @@ if (isset($_POST['submit'])) {
 <body>
     <div class="container">
         <div class="header">
-            <h2>Create Account</h2>
-            <p>Join our community today</p>
+            <h2>Edit User</h2>
+            <p>Update user information</p>
         </div>
         
         <div class="form-container">
-            <?php if (isset($error)): ?>
+            <?php if ($success): ?>
+                <div class="message success"><?php echo $success; ?></div>
+            <?php endif; ?>
+            
+            <?php if ($error): ?>
                 <div class="message error"><?php echo $error; ?></div>
             <?php endif; ?>
             
-            <form method="POST" id="registrationForm">
+            <form method="POST">
                 <div class="form-group">
                     <label>Last Name:</label>
                     <i class="fas fa-user"></i>
-                    <input type="text" name="lname" required placeholder="Enter your last name">
+                    <input type="text" name="lname" value="<?php echo $user['Lname']; ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label>Given Name:</label>
                     <i class="fas fa-user"></i>
-                    <input type="text" name="gname" required placeholder="Enter your given name">
+                    <input type="text" name="gname" value="<?php echo $user['Gname']; ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label>Middle Initial:</label>
                     <i class="fas fa-user"></i>
-                    <input type="text" name="mi" maxlength="2" required placeholder="MI">
+                    <input type="text" name="mi" maxlength="2" value="<?php echo $user['MI']; ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label>Username:</label>
                     <i class="fas fa-at"></i>
-                    <input type="text" name="uname" id="uname" required autocomplete="off" placeholder="Choose a username">
-                    <div id="usernameStatus" class="availability-status"></div>
+                    <input type="text" name="uname" value="<?php echo $user['Username']; ?>" required>
                 </div>
                 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <i class="fas fa-lock"></i>
-                    <input id="password" name="password" type="password" required minlength="8"
-                    autocomplete="new-password" placeholder="At least 8 characters">
-                    <button type="button" class="toggle-password" id="togglePassword">
-                        <i class="far fa-eye"></i>
-                    </button>
-                </div>
-                
-                <button type="submit" name="submit" class="btn">
-                    <i class="fas fa-user-plus"></i> Create Account
+                <button type="submit" class="btn">
+                    <i class="fas fa-save"></i> Update User
                 </button>
             </form>
             
-            <div class="login-link">
-                Already have an account? <a href="login.php">Back</a>
+            <div class="back-link">
+                <a href="read.php"><i class="fas fa-arrow-left"></i> Back to User List</a>
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const usernameInput = document.getElementById('uname');
-            const usernameStatus = document.getElementById('usernameStatus');
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('password');
-            let checkTimeout = null;
-            
-            // Toggle password visibility
-            togglePassword.addEventListener('click', function() {
-                const type = passwordInput.type === 'password' ? 'text' : 'password';
-                passwordInput.type = type;
-                this.innerHTML = type === 'password' ? '<i class="far fa-eye"></i>' : '<i class="far fa-eye-slash"></i>';
-            });
-            
-            // Username availability check
-            usernameInput.addEventListener('input', function() {
-                const username = this.value.trim();
-                
-                // Clear previous timeout if exists
-                if (checkTimeout) {
-                    clearTimeout(checkTimeout);
-                }
-                
-                if (username.length < 3) {
-                    usernameStatus.innerHTML = '';
-                    return;
-                }
-                
-                usernameStatus.innerHTML = '<span class="status-icon"><i class="fas fa-spinner fa-spin"></i></span> Checking availability...';
-                usernameStatus.className = 'availability-status checking';
-                
-                // Set a timeout to avoid too many requests
-                checkTimeout = setTimeout(() => {
-                    // Create AJAX request to check username
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', 'check_username.php', true);
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                    
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4 && xhr.status === 200) {
-                            const response = JSON.parse(xhr.responseText);
-                            
-                            if (response.available) {
-                                usernameStatus.innerHTML = '<span class="status-icon"><i class="fas fa-check-circle"></i></span> Username is available';
-                                usernameStatus.className = 'availability-status available';
-                            } else {
-                                usernameStatus.innerHTML = '<span class="status-icon"><i class="fas fa-times-circle"></i></span> Username is already taken';
-                                usernameStatus.className = 'availability-status taken';
-                            }
-                        }
-                    };
-                    
-                    xhr.send('username=' + encodeURIComponent(username));
-                }, 800);
-            });
-        });
-    </script>
 </body>
 </html>
