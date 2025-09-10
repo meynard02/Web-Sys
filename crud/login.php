@@ -2,31 +2,26 @@
 // login.php
 include 'db.php';
 session_start();
-
 // If user is already logged in, redirect to read.php
 if (isset($_SESSION['user_id'])) {
     header("Location: read.php");
     exit();
 }
-
 $error_message = "";
-
 // Process form when submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data safely
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-
     if ($username !== '' && $password !== '') {
         // Query to check user - using prepared statement to prevent SQL injection
-        $stmt = $conn->prepare("SELECT userID, Lname, Gname, MI, Username, Password FROM user WHERE Username = ? LIMIT 1");
+        // Added is_deleted = FALSE to prevent deleted users from logging in
+        $stmt = $conn->prepare("SELECT userID, Lname, Gname, MI, Username, Password FROM user WHERE Username = ? AND is_deleted = FALSE LIMIT 1");
         $stmt->bind_param("s", $username);
         $stmt->execute();
         $result = $stmt->get_result();
-
         if ($result && $result->num_rows > 0) {
             $row = $result->fetch_assoc();
-
             // Verify password (using password_verify since create.php uses password_hash)
             if (password_verify($password, $row['Password'])) {
                 $_SESSION['user_id'] = $row['userID'];
@@ -34,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['gname'] = $row['Gname'];
                 $_SESSION['lname'] = $row['Lname'];
                 $_SESSION['last_activity'] = time();
-                
+
                 // Redirect to read.php
                 header("Location: read.php");
                 exit();
@@ -42,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_message = "Invalid password!";
             }
         } else {
-            $error_message = "User not found!";
+            $error_message = "User not found or account is deleted!";
         }
         $stmt->close();
     } else {
@@ -51,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 $conn->close();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,14 +67,14 @@ $conn->close();
             --box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             --transition: all 0.3s ease;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Poppins', 'Segoe UI', sans-serif;
         }
-        
+
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -89,7 +83,7 @@ $conn->close();
             align-items: center;
             padding: 20px;
         }
-        
+
         .login-container {
             background-color: white;
             border-radius: var(--border-radius);
@@ -99,12 +93,12 @@ $conn->close();
             overflow: hidden;
             animation: fadeIn 0.5s ease;
         }
-        
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .login-header {
             background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
@@ -112,7 +106,7 @@ $conn->close();
             text-align: center;
             position: relative;
         }
-        
+
         .login-header::after {
             content: '';
             position: absolute;
@@ -122,27 +116,27 @@ $conn->close();
             height: 4px;
             background: linear-gradient(90deg, var(--success), var(--warning));
         }
-        
+
         .login-header h2 {
             font-size: 28px;
             margin-bottom: 5px;
             font-weight: 600;
         }
-        
+
         .login-header p {
             font-size: 14px;
             opacity: 0.9;
         }
-        
+
         .login-body {
             padding: 30px;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
             position: relative;
         }
-        
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -150,7 +144,7 @@ $conn->close();
             color: var(--dark);
             font-size: 14px;
         }
-        
+
         input {
             width: 100%;
             padding: 14px 15px 14px 45px;
@@ -160,14 +154,14 @@ $conn->close();
             transition: var(--transition);
             background-color: #f8f9fa;
         }
-        
+
         input:focus {
             border-color: var(--primary);
             outline: none;
             background-color: white;
             box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
         }
-        
+
         .form-group i {
             position: absolute;
             left: 15px;
@@ -175,11 +169,11 @@ $conn->close();
             color: var(--gray);
             font-size: 18px;
         }
-        
+
         .password-container {
             position: relative;
         }
-        
+
         .toggle-password {
             position: absolute;
             right: 12px;
@@ -190,7 +184,7 @@ $conn->close();
             border: none;
             font-size: 18px;
         }
-        
+
         .btn {
             background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
@@ -207,16 +201,16 @@ $conn->close();
             align-items: center;
             gap: 8px;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
-        
+
         .btn:active {
             transform: translateY(0);
         }
-        
+
         .error {
             background-color: #f8d7da;
             color: #721c24;
@@ -228,35 +222,35 @@ $conn->close();
             border: 1px solid #f5c6cb;
             animation: slideIn 0.3s ease;
         }
-        
+
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .register-link {
             text-align: center;
             margin-top: 20px;
             font-size: 14px;
             color: var(--gray);
         }
-        
+
         .register-link a {
             color: var(--primary);
             text-decoration: none;
             font-weight: 600;
             transition: var(--transition);
         }
-        
+
         .register-link a:hover {
             text-decoration: underline;
         }
-        
+
         @media (max-width: 576px) {
             .login-container {
                 max-width: 100%;
             }
-            
+
             .login-body {
                 padding: 20px;
             }
@@ -269,19 +263,18 @@ $conn->close();
             <h2>Welcome Back</h2>
             <p>Sign in to your account</p>
         </div>
-        
+
         <div class="login-body">
             <?php if (!empty($error_message)): ?>
                 <div class="error"><?php echo $error_message; ?></div>
             <?php endif; ?>
-            
+
             <form method="POST">
                 <div class="form-group">
                     <label>Username:</label>
                     <i class="fas fa-user"></i>
                     <input type="text" name="username" required placeholder="Enter your username">
                 </div>
-
                 <div class="form-group">
                     <label>Password:</label>
                     <i class="fas fa-lock"></i>
@@ -290,22 +283,19 @@ $conn->close();
                         <i class="far fa-eye"></i>
                     </button>
                 </div>
-
                 <button type="submit" class="btn">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
             </form>
-            
+
             <div class="register-link">
                 Don't have an account? <a href="create.php">Register here</a>
             </div>
         </div>
     </div>
-
     <script>
         const togglePassword = document.getElementById("togglePassword");
         const passwordInput = document.getElementById("password");
-
         togglePassword.addEventListener("click", function () {
             const type = passwordInput.type === "password" ? "text" : "password";
             passwordInput.type = type;
